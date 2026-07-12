@@ -28,25 +28,25 @@
 - [x] 5.4 Configure CORS for Next.js
 
 ## 6. Frontend Project Setup
-- [ ] 6.1 Create `frontend/package.json`
-- [ ] 6.2 Create Next.js config files
-- [ ] 6.3 Run `npm install`
+- [x] 6.1 Create `frontend/package.json`
+- [x] 6.2 Create Next.js config files
+- [x] 6.3 Run `npm install`
 
 ## 7. Frontend Catalog
-- [ ] 7.1 Create `frontend/src/lib/a2ui-catalog.ts`
-- [ ] 7.2 Create `frontend/src/components/a2ui/CourseCard.tsx`
-- [ ] 7.3 Create `frontend/src/components/a2ui/overrides.tsx`
+- [x] 7.1 Create `frontend/src/lib/a2ui-catalog.ts`
+- [x] 7.2 Create `frontend/src/components/a2ui/CourseCard.tsx`
+- [x] 7.3 Create `frontend/src/components/a2ui/overrides.tsx`
 
 ## 8. SSE Client
-- [ ] 8.1 Create `frontend/src/lib/sse-client.ts`
+- [x] 8.1 Create `frontend/src/lib/sse-client.ts`
 
 ## 9. Frontend Chat UI
-- [ ] 9.1 Create `frontend/src/components/a2ui/A2UIChat.tsx`
-- [ ] 9.2 Create `frontend/src/app/api/chat/route.ts`
-- [ ] 9.3 Create `frontend/src/app/layout.tsx`
-- [ ] 9.4 Create `frontend/src/app/page.tsx`
-- [ ] 9.5 Create `frontend/src/app/globals.css`
-- [ ] 9.6 Create `frontend/src/app/course/[id]/page.tsx`
+- [x] 9.1 Create `frontend/src/components/a2ui/A2UIChat.tsx`
+- [x] 9.2 Create `frontend/src/app/api/chat/route.ts`
+- [x] 9.3 Create `frontend/src/app/layout.tsx`
+- [x] 9.4 Create `frontend/src/app/page.tsx`
+- [x] 9.5 Create `frontend/src/app/globals.css`
+- [x] 9.6 Create `frontend/src/app/course/[id]/page.tsx`
 
 ## 10. Integration Testing
 - [ ] 10.1 Start backend, verify health endpoint
