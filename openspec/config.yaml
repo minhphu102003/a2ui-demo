@@ -1,0 +1,17 @@
+# OpenSpec Configuration for A2UI Demo
+name: a2ui-demo
+description: A2UI Demo — Course Catalog Agent
+
+# Schema configuration
+schema: spec-driven
+
+# Project domains
+domains:
+  - backend-setup
+  - a2ui-schema
+  - langgraph-agent
+  - fastapi-server
+  - frontend-setup
+  - frontend-catalog
+  - sse-client
+  - frontend-chat
