@@ -1,5 +1,11 @@
+import logging
 from a2ui.parser.parser import parse_response
 from a2ui.core import A2uiParseError
+from a2ui.schema.validator import A2uiValidator
+
+from a2ui_utils.schema_manager import schema_manager
+
+logger = logging.getLogger(__name__)
 
 
 def parse_a2ui_response(content: str) -> list[dict]:
@@ -39,13 +45,11 @@ def validate_message(message: dict) -> bool:
     Returns:
         True if valid, False otherwise
     """
-    from .schema_manager import schema_manager
     try:
         catalog = schema_manager.get_selected_catalog()
-        from a2ui.core.validating.validator import A2uiValidator
         validator = A2uiValidator(catalog)
         validator.validate(message)
         return True
     except Exception as e:
-        print(f"Validation error: {e}")
+        logger.warning(f"Validation error: {e}")
         return False

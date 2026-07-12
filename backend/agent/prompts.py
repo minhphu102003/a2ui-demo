@@ -1,4 +1,4 @@
-from ..a2ui import schema_manager
+from a2ui_utils import schema_manager
 
 
 SYSTEM_PROMPT = """You are a course catalog assistant that helps users discover and learn about online courses.

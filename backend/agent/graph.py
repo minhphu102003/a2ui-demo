@@ -1,12 +1,13 @@
+import os
 from typing import TypedDict, Annotated
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 
 from .prompts import get_system_prompt
 from .tools import search_courses, get_course_details
-from ..a2ui import parse_a2ui_response
+from a2ui_utils import parse_a2ui_response
 
 
 class AgentState(TypedDict):
@@ -18,7 +19,8 @@ def create_agent():
     """Create the LangGraph agent for course catalog."""
 
     tools = [search_courses, get_course_details]
-    llm = ChatOpenAI(model="gpt-4o", temperature=0).bind_tools(tools)
+    model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
+    llm = ChatOpenAI(model=model_name, temperature=0).bind_tools(tools)
     tool_map = {tool.name: tool for tool in tools}
 
     system_prompt = get_system_prompt()
@@ -28,7 +30,12 @@ def create_agent():
         messages = state["messages"]
 
         full_messages = [{"role": "system", "content": system_prompt}] + [
-            m if isinstance(m, dict) else {"role": "user" if isinstance(m, HumanMessage) else "assistant", "content": m.content}
+            {
+                "role": "user" if isinstance(m, HumanMessage) else "assistant",
+                "content": m.content,
+            }
+            if isinstance(m, (HumanMessage, AIMessage))
+            else m
             for m in messages
         ]
 
@@ -43,7 +50,7 @@ def create_agent():
 
         return {
             "messages": [AIMessage(content=content)],
-            "a2ui_output": a2ui_messages,
+            "a2ui_output": state.get("a2ui_output", []) + a2ui_messages,
         }
 
     def handle_tools(state: AgentState):
@@ -61,14 +68,13 @@ def create_agent():
             if tool_name in tool_map:
                 result = tool_map[tool_name].invoke(tool_args)
                 results.append(
-                    {
-                        "role": "tool",
-                        "content": result,
-                        "tool_call_id": tool_call["id"],
-                    }
+                    ToolMessage(
+                        content=str(result),
+                        tool_call_id=tool_call["id"],
+                    )
                 )
 
-        return {"messages": [HumanMessage(content=str(r["content"])) for r in results]}
+        return {"messages": results}
 
     def should_continue(state: AgentState):
         """Check if we should continue with tool calls."""
@@ -81,10 +87,9 @@ def create_agent():
     workflow.add_node("generate_ui", generate_ui)
     workflow.add_node("tools", handle_tools)
     workflow.set_entry_point("generate_ui")
-    workflow.add_conditional_edges("generate_ui", should_continue, {"tools": "tools", END: END})
+    workflow.add_conditional_edges(
+        "generate_ui", should_continue, {"tools": "tools", END: END}
+    )
     workflow.add_edge("tools", "generate_ui")
 
     return workflow.compile()
-
-
-agent = create_agent()

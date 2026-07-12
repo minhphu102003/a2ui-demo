@@ -1,3 +1,10 @@
-from .graph import agent
+from .graph import create_agent
 
-__all__ = ["agent"]
+_agent = None
+
+
+def get_agent():
+    global _agent
+    if _agent is None:
+        _agent = create_agent()
+    return _agent

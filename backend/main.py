@@ -1,13 +1,17 @@
 import json
 import asyncio
+import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 
-from .agent.graph import agent
+from agent import get_agent
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="A2UI Demo Backend")
 
@@ -33,8 +37,11 @@ async def chat(request: Request):
     async def event_stream():
         try:
             result = await asyncio.to_thread(
-                lambda: agent.invoke(
-                    {"messages": [{"role": "user", "content": user_message}], "a2ui_output": []}
+                lambda: get_agent().invoke(
+                    {
+                        "messages": [{"role": "user", "content": user_message}],
+                        "a2ui_output": [],
+                    }
                 )
             )
 
@@ -46,6 +53,7 @@ async def chat(request: Request):
             yield "data: [DONE]\n\n"
 
         except Exception as e:
+            logger.error(f"Chat error: {e}")
             error_msg = {
                 "version": "v0.9",
                 "updateComponents": {

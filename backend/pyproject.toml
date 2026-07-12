@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["a2ui", "agent"]
+packages = ["a2ui_utils", "agent"]
 
 [build-system]
 requires = ["hatchling"]
