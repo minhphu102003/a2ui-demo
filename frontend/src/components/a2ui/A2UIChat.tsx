@@ -1,33 +1,54 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MessageProcessor } from "@a2ui/web_core/v0_9";
 import { A2uiSurface } from "@a2ui/react/v0_9";
+import type { ReactComponentImplementation } from "@a2ui/react/v0_9";
+import type { SurfaceModel } from "@a2ui/web_core/v0_9";
 import { courseCatalog } from "@/lib/a2ui-catalog";
 import { streamA2UI } from "@/lib/sse-client";
-import { useRouter } from "next/navigation";
 
 export function A2UIChat() {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<any[]>([]);
-  const [surfaces, setSurfaces] = useState<Map<string, any>>(new Map());
+  const [surfaces, setSurfaces] = useState<
+    Map<string, SurfaceModel<ReactComponentImplementation>>
+  >(new Map());
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-
-  const processor = new MessageProcessor({
-    catalog: courseCatalog,
-    actionHandler: (action: any) => {
-      if (action.name === "navigate" && action.context?.url) {
-        router.push(action.context.url);
-      }
-    },
-  });
+  const [error, setError] = useState<string | null>(null);
+  const processorRef = useRef<MessageProcessor<ReactComponentImplementation> | null>(null);
 
   useEffect(() => {
-    processor.onSurfaceUpdate((surfaceId: string, state: any) => {
-      setSurfaces((prev) => new Map(prev).set(surfaceId, state));
+    const processor = new MessageProcessor<ReactComponentImplementation>(
+      [courseCatalog],
+      (action) => {
+        if (action.name === "navigate" && action.context?.url) {
+          window.location.href = action.context.url;
+        }
+      }
+    );
+
+    processorRef.current = processor;
+
+    const subCreated = processor.model.onSurfaceCreated.subscribe(
+      (surface) => {
+        setSurfaces((prev) => new Map(prev).set(surface.id, surface));
+      }
+    );
+
+    const subDeleted = processor.model.onSurfaceDeleted.subscribe((id) => {
+      setSurfaces((prev) => {
+        const next = new Map(prev);
+        next.delete(id);
+        return next;
+      });
     });
-  }, [processor]);
+
+    return () => {
+      subCreated.unsubscribe();
+      subDeleted.unsubscribe();
+      processor.model.dispose();
+    };
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -35,15 +56,15 @@ export function A2UIChat() {
     const userMessage = input;
     setInput("");
     setIsLoading(true);
-
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    setError(null);
 
     try {
       for await (const a2uiMsg of streamA2UI(userMessage)) {
-        processor.processMessages([a2uiMsg]);
+        processorRef.current?.processMessages([a2uiMsg]);
       }
-    } catch (error) {
-      console.error("Stream error:", error);
+    } catch (err) {
+      console.error("Stream error:", err);
+      setError("Failed to get response. Is the backend running?");
     } finally {
       setIsLoading(false);
     }
@@ -56,8 +77,13 @@ export function A2UIChat() {
       </header>
 
       <div className="flex-1 overflow-auto p-4">
-        {Array.from(surfaces.entries()).map(([surfaceId, state]) => (
-          <A2uiSurface key={surfaceId} surfaceId={surfaceId} state={state} />
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 mb-4">
+            {error}
+          </div>
+        )}
+        {Array.from(surfaces.entries()).map(([surfaceId, surface]) => (
+          <A2uiSurface key={surfaceId} surface={surface} />
         ))}
       </div>
 
