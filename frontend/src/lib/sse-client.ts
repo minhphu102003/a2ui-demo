@@ -1,7 +1,5 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-
 export async function* streamA2UI(userMessage: string): AsyncGenerator<any> {
-  const response = await fetch(`${BACKEND_URL}/api/chat`, {
+  const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message: userMessage }),
