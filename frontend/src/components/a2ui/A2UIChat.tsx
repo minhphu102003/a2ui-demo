@@ -25,10 +25,13 @@ export function A2UIChat() {
     Map<string, SurfaceModel<ReactComponentImplementation>>
   >(new Map());
   const [textMessages, setTextMessages] = useState<TextMessage[]>([]);
+  const [streamingText, setStreamingText] = useState("");
   const [metrics, setMetrics] = useState<MetricsMessage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toolStatus, setToolStatus] = useState<string | null>(null);
   const processorRef = useRef<MessageProcessor<ReactComponentImplementation> | null>(null);
+  const streamBufferRef = useRef("");
 
   useEffect(() => {
     const processor = new MessageProcessor<ReactComponentImplementation>(
@@ -70,11 +73,28 @@ export function A2UIChat() {
     setInput("");
     setIsLoading(true);
     setError(null);
+    setStreamingText("");
+    setToolStatus(null);
+    streamBufferRef.current = "";
 
     try {
       for await (const msg of streamA2UI(userMessage)) {
-        if (msg.type === "text") {
+        if (msg.type === "text_delta") {
+          streamBufferRef.current += msg.content;
+          setStreamingText(streamBufferRef.current);
+        } else if (msg.type === "text_done") {
+          const finalText = streamBufferRef.current;
+          streamBufferRef.current = "";
+          setStreamingText("");
+          if (finalText) {
+            setTextMessages((prev) => [...prev, { type: "text", content: finalText }]);
+          }
+        } else if (msg.type === "text") {
           setTextMessages((prev) => [...prev, msg]);
+        } else if (msg.type === "tool_start") {
+          setToolStatus(`Calling ${msg.tool}...`);
+        } else if (msg.type === "tool_end") {
+          setToolStatus(null);
         } else if (msg.type === "metrics") {
           setMetrics(msg);
         } else {
@@ -90,6 +110,7 @@ export function A2UIChat() {
       setError("Failed to get response. Is the backend running?");
     } finally {
       setIsLoading(false);
+      setToolStatus(null);
     }
   };
 
@@ -110,6 +131,23 @@ export function A2UIChat() {
             <p className="text-gray-800">{msg.content}</p>
           </div>
         ))}
+        {streamingText && (
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <p className="text-gray-800">
+              {streamingText}
+              <span className="animate-pulse text-blue-500">|</span>
+            </p>
+          </div>
+        )}
+        {toolStatus && (
+          <div className="mb-4 p-2 bg-blue-50 text-blue-600 rounded-lg text-sm flex items-center gap-2">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            {toolStatus}
+          </div>
+        )}
         {Array.from(surfaces.entries()).map(([surfaceId, surface]) => (
           <A2uiSurface key={surfaceId} surface={surface} />
         ))}

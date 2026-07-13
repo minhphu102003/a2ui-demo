@@ -29,7 +29,7 @@ def create_agent():
 
     tools = [search_courses, get_course_details]
     model_name = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-    llm = ChatOpenAI(model=model_name, temperature=0).bind_tools(tools)
+    llm = ChatOpenAI(model=model_name, temperature=0, streaming=True).bind_tools(tools)
     tool_map = {tool.name: tool for tool in tools}
 
     base_prompt = get_base_prompt()
