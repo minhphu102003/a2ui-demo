@@ -31,7 +31,8 @@ export async function* streamA2UI(userMessage: string): AsyncGenerator<any> {
       if (data === "[DONE]") return;
 
       try {
-        yield JSON.parse(data);
+        const parsed = JSON.parse(data);
+        yield parsed;
       } catch {
         // Skip invalid JSON
       }

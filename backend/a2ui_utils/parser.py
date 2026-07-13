@@ -36,6 +36,31 @@ def parse_a2ui_response(content: str) -> list[dict]:
         raise ValueError(str(e)) from e
 
 
+def parse_response_with_text(content: str) -> tuple[str, list[dict]]:
+    """Parse both conversational text and A2UI JSON from LLM output.
+
+    Returns:
+        Tuple of (text, a2ui_messages). Text may be empty.
+    """
+    try:
+        parts = parse_response(content)
+    except A2uiParseError:
+        return (content.strip(), [])
+
+    text_parts = []
+    a2ui_messages = []
+    for part in parts:
+        if part.text and part.text.strip():
+            text_parts.append(part.text.strip())
+        if part.a2ui_json:
+            if isinstance(part.a2ui_json, list):
+                a2ui_messages.extend(part.a2ui_json)
+            else:
+                a2ui_messages.append(part.a2ui_json)
+
+    return ("\n".join(text_parts), a2ui_messages)
+
+
 def validate_message(message: dict) -> bool:
     """Validate an A2UI message against the schema.
 

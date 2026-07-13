@@ -8,11 +8,24 @@ import type { SurfaceModel } from "@a2ui/web_core/v0_9";
 import { courseCatalog } from "@/lib/a2ui-catalog";
 import { streamA2UI } from "@/lib/sse-client";
 
+interface TextMessage {
+  type: "text";
+  content: string;
+}
+
+interface MetricsMessage {
+  type: "metrics";
+  latency_ms: number;
+  tokens: { input: number; output: number; total: number };
+}
+
 export function A2UIChat() {
   const [input, setInput] = useState("");
   const [surfaces, setSurfaces] = useState<
     Map<string, SurfaceModel<ReactComponentImplementation>>
   >(new Map());
+  const [textMessages, setTextMessages] = useState<TextMessage[]>([]);
+  const [metrics, setMetrics] = useState<MetricsMessage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const processorRef = useRef<MessageProcessor<ReactComponentImplementation> | null>(null);
@@ -59,8 +72,18 @@ export function A2UIChat() {
     setError(null);
 
     try {
-      for await (const a2uiMsg of streamA2UI(userMessage)) {
-        processorRef.current?.processMessages([a2uiMsg]);
+      for await (const msg of streamA2UI(userMessage)) {
+        if (msg.type === "text") {
+          setTextMessages((prev) => [...prev, msg]);
+        } else if (msg.type === "metrics") {
+          setMetrics(msg);
+        } else {
+          try {
+            processorRef.current?.processMessages([msg]);
+          } catch (err) {
+            console.error("A2UI processMessages error:", err);
+          }
+        }
       }
     } catch (err) {
       console.error("Stream error:", err);
@@ -82,12 +105,23 @@ export function A2UIChat() {
             {error}
           </div>
         )}
+        {textMessages.map((msg, i) => (
+          <div key={`text-${i}`} className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <p className="text-gray-800">{msg.content}</p>
+          </div>
+        ))}
         {Array.from(surfaces.entries()).map(([surfaceId, surface]) => (
           <A2uiSurface key={surfaceId} surface={surface} />
         ))}
       </div>
 
       <div className="p-4 border-t">
+        {metrics && (
+          <div className="text-xs text-gray-400 mb-2 flex gap-4">
+            <span>{metrics.latency_ms}ms</span>
+            <span>in: {metrics.tokens.input} / out: {metrics.tokens.output} / total: {metrics.tokens.total}</span>
+          </div>
+        )}
         <div className="flex gap-2">
           <input
             type="text"

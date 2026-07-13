@@ -11,8 +11,17 @@ When responding to users:
 3. You can combine text responses with A2UI components"""
 
 
-def get_system_prompt() -> str:
-    """Get the system prompt with A2UI schema included."""
+def get_base_prompt() -> str:
+    """Prompt without A2UI schema — for tool decision calls."""
+    return schema_manager.generate_system_prompt(
+        role_description=ROLE_DESCRIPTION,
+        include_schema=False,
+        include_examples=False,
+    )
+
+
+def get_full_prompt() -> str:
+    """Prompt with A2UI schema — for A2UI generation calls."""
     return schema_manager.generate_system_prompt(
         role_description=ROLE_DESCRIPTION,
         include_schema=True,

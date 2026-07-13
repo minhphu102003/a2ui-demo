@@ -41,19 +41,47 @@ async def chat(request: Request):
                     {
                         "messages": [{"role": "user", "content": user_message}],
                         "a2ui_output": [],
+                        "a2ui_text": "",
+                        "llm_metrics": {},
+                        "called_tools": [],
                     }
                 )
             )
 
             a2ui_messages = result.get("a2ui_output", [])
+            a2ui_text = result.get("a2ui_text", "")
+            llm_metrics = result.get("llm_metrics", {})
+            logger.info("Agent produced %d A2UI messages, text=%d chars, metrics=%s",
+                        len(a2ui_messages), len(a2ui_text), llm_metrics)
 
-            for msg in a2ui_messages:
-                yield f"data: {json.dumps(msg)}\n\n"
+            if a2ui_text:
+                text_payload = json.dumps({"type": "text", "content": a2ui_text})
+                yield f"data: {text_payload}\n\n"
+
+            if a2ui_messages:
+                if a2ui_messages and "createSurface" not in a2ui_messages[0]:
+                    surface_id = a2ui_messages[0].get("updateComponents", {}).get("surfaceId", "main")
+                    create_msg = {
+                        "version": "v0.9",
+                        "createSurface": {
+                            "surfaceId": surface_id,
+                            "catalogId": "course-catalog",
+                        },
+                    }
+                    a2ui_messages.insert(0, create_msg)
+
+                for msg in a2ui_messages:
+                    logger.info("Sending A2UI message: %s", json.dumps(msg)[:200])
+                    yield f"data: {json.dumps(msg)}\n\n"
+
+            if llm_metrics:
+                metrics_payload = json.dumps({"type": "metrics", **llm_metrics})
+                yield f"data: {metrics_payload}\n\n"
 
             yield "data: [DONE]\n\n"
 
         except Exception as e:
-            logger.error(f"Chat error: {e}")
+            logger.error("Chat error: %s", e, exc_info=True)
             error_msg = {
                 "version": "v0.9",
                 "updateComponents": {
