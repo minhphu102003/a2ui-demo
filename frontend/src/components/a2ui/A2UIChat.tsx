@@ -7,6 +7,8 @@ import { useChatStream } from "@/hooks/useChatStream";
 import {
   ChatHeader,
   EmptyState,
+  UserMessageBubble,
+  TypingIndicator,
   TextMessageBubble,
   StreamingBubble,
   ToolStatusIndicator,
@@ -17,6 +19,7 @@ export function A2UIChat() {
   const [input, setInput] = useState("");
   const { surfaces, processMessages } = useA2UIProcessor();
   const {
+    userMessages,
     textMessages,
     streamingText,
     metrics,
@@ -36,7 +39,7 @@ export function A2UIChat() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [textMessages, streamingText, surfaces, scrollToBottom]);
+  }, [userMessages, textMessages, streamingText, surfaces, scrollToBottom]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -49,9 +52,9 @@ export function A2UIChat() {
     <div className="flex flex-col h-dvh bg-[var(--color-surface)]">
       <ChatHeader metrics={metrics} />
 
-      <main className="flex-1 overflow-y-auto px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto py-6 space-y-4">
-          {textMessages.length === 0 && !isLoading && !error && <EmptyState />}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-6 sm:px-10 py-6 space-y-4">
+          {userMessages.length === 0 && textMessages.length === 0 && !isLoading && !error && <EmptyState />}
 
           {error && (
             <div className="animate-fade-in-up rounded-[var(--radius-lg)] bg-[var(--color-danger-subtle)] border border-[var(--color-danger)]/20 px-4 py-3 text-sm text-[var(--color-danger)]">
@@ -59,11 +62,17 @@ export function A2UIChat() {
             </div>
           )}
 
+          {userMessages.map((msg, i) => (
+            <UserMessageBubble key={`user-${i}`} content={msg.content} index={i} />
+          ))}
+
           {textMessages.map((msg, i) => (
             <TextMessageBubble key={`text-${i}`} content={msg.content} index={i} />
           ))}
 
           {streamingText && <StreamingBubble text={streamingText} />}
+
+          {isLoading && !streamingText && <TypingIndicator />}
 
           {toolStatus && <ToolStatusIndicator status={toolStatus} />}
 

@@ -4,6 +4,11 @@ import { useState, useRef, useCallback } from "react";
 import { streamA2UI } from "@/lib/sse-client";
 import type { A2uiMessage } from "@a2ui/web_core/v0_9";
 
+export interface UserMessage {
+  type: "user";
+  content: string;
+}
+
 export interface TextMessage {
   type: "text";
   content: string;
@@ -20,6 +25,7 @@ interface UseChatStreamOptions {
 }
 
 export function useChatStream(options?: UseChatStreamOptions) {
+  const [userMessages, setUserMessages] = useState<UserMessage[]>([]);
   const [textMessages, setTextMessages] = useState<TextMessage[]>([]);
   const [streamingText, setStreamingText] = useState("");
   const [metrics, setMetrics] = useState<MetricsMessage | null>(null);
@@ -31,6 +37,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
   const sendMessage = useCallback(async (input: string) => {
     if (!input.trim() || isLoading) return;
 
+    setUserMessages((prev) => [...prev, { type: "user", content: input }]);
     setIsLoading(true);
     setError(null);
     setStreamingText("");
@@ -71,6 +78,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
   }, [isLoading, options]);
 
   const clearMessages = useCallback(() => {
+    setUserMessages([]);
     setTextMessages([]);
     setStreamingText("");
     setMetrics(null);
@@ -79,6 +87,7 @@ export function useChatStream(options?: UseChatStreamOptions) {
   }, []);
 
   return {
+    userMessages,
     textMessages,
     streamingText,
     metrics,
